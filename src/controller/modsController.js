@@ -1,6 +1,7 @@
 import { Mods } from "../models/modsModel.js";
 import db from "../db.js";
-import fs from "fs";
+import { uploadBuffer } from "../services/ftpService.js";
+import { env } from "../config/env.js";
 import { connectSFTP } from "../ftp.js";
 
 // Get all mods
@@ -123,17 +124,17 @@ export const createModDownload = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "File required" });
     }
+    console.log('[UPLOAD] File received:', req.file.originalname, 'Size:', req.file.size, 'SFTP enabled:', env.sftp.enabled);
 
-    const sftp = await connectSFTP();
-
-    const remoteDir = `/public_html/snap_tech_modsforminecraft/upload/data/${file_format}/${title_for_path}`;
-    await sftp.mkdir(remoteDir, true);
-
-    const remoteFile = `${remoteDir}/${req.file.originalname}`;
-    await sftp.put(req.file.path, remoteFile);
-    await sftp.end();
-
-    fs.unlinkSync(req.file.path);
+    // 🔥 Vercel-compatible: pure buffer → SFTP (use file_format as fallback)
+    await uploadBuffer({
+      fileFormate: file_format,
+      category: req.body.category || file_format || "data",
+      subCategory: req.body.sub_category || file_format || "data",
+      titleForPath: title_for_path,
+      fileName: req.file.originalname,
+      buffer: req.file.buffer
+    });
 
     const sql = `
       INSERT INTO snap_tech_modsforminecraft_modsDownloadData
@@ -179,28 +180,15 @@ export const updateModDownload = async (req, res) => {
     const oldData = rows[0];
 
     if (req.file) {
-      const sftp = await connectSFTP();
-
-      // simple upload path (no format folders)
-      const remoteDir = `/public_html/snap_tech_modsforminecraft/upload/data/${oldData.file_format}/${oldData.title_for_path}`;
-      await sftp.mkdir(remoteDir, true);
-
-      // 🔴 Delete old file
-      if (oldData.url) {
-        const oldRemoteFile = `${remoteDir}/${oldData.url}`;
-        try {
-          await sftp.delete(oldRemoteFile);
-        } catch (err) {
-          console.log("Old file not found, skipping delete");
-        }
-      }
-
-      const remoteFile = `${remoteDir}/${req.file.originalname}`;
-      // upload new file
-      await sftp.put(req.file.path, remoteFile);
-
-      await sftp.end();
-      fs.unlinkSync(req.file.path);
+      // 🔥 Vercel-safe: buffer → SFTP (use file_format fallback)
+      await uploadBuffer({
+        fileFormate: file_format || oldData.file_format,
+        category: oldData.category || req.body.category || oldData.file_format || "data",
+        subCategory: oldData.sub_category || req.body.sub_category || oldData.file_format || "data",
+        titleForPath: oldData.title_for_path,
+        fileName: req.file.originalname,
+        buffer: req.file.buffer
+      });
 
       fileName = req.file.originalname;
     }

@@ -7,6 +7,10 @@ import { uploadBuffer } from "../services/ftpService.js";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+router.get("/secretebase", (req, res) => {
+  res.json({status: "Upload endpoint ready ✅", methods: ["POST", "PUT"], path: "/api/upload/secretebase"});
+});
+
 router.put("/secretebase/:id", upload.single("file"), async (req, res) => {
   try {
     const { title, size } = req.body;
@@ -61,8 +65,8 @@ router.put("/secretebase/:id", upload.single("file"), async (req, res) => {
 
 router.post("/secretebase", upload.single("image"), async (req, res) => {
 
-//     console.log("BODY:", req.body);
-// console.log("FILE:", req.file);
+    console.log("BODY:", req.body);
+console.log("FILE:", req.file);
   try {
     const { file_format, title_for_path } = req.body;
 

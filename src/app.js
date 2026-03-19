@@ -16,6 +16,7 @@ import categoryclicksRoutes from "./routes/categoryclicksRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
 import sdashboardRoutes from "./routes/sdashboardRoutes.js";
 import allmodsRoutes from "./routes/allmodsRoutes.js";
+import modsDownloadRoutes from "./routes/mods-download.routes.js";
 
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 import { env } from "./config/env.js";
@@ -93,6 +94,7 @@ app.use("/api/modanalysis", analysisRoutes);
 app.use("/api/categoryclicks", categoryclicksRoutes);
 app.use("/api/searchkeyword", searchkeywordRoutes);
 app.use("/api/allmods", allmodsRoutes);
+app.use("/api/mods-download", modsDownloadRoutes);
 app.use("/api", sdashboardRoutes);
 
 /* -------------------- Error Handling -------------------- */

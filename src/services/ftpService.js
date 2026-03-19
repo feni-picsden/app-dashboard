@@ -35,14 +35,18 @@ async function uploadToLocal(relativeDir, filename, buffer) {
   await fs.writeFile(destinationFile, buffer);
 }
 
-async function uploadToSftp(relativeDir, filename, buffer) {
+async function uploadToSftp(relativeDir, filename, buffer, fileFormate) {
   const client = new SftpClient();
-  const remoteDir = joinPosix(env.sftp.basePath, relativeDir);
+  const snaptechPath = '/public_html/snap_tech_modsforminecraft/upload/data';
+  const modscraftPath = '/public_html/modscraft/upload/data';
+  const remoteDir = joinPosix((fileFormate === 'mcpack' || fileFormate === 'mcaddon') ? snaptechPath : modscraftPath, relativeDir);
+  console.log('[SFTP DEBUG] Format:', fileFormate, 'Path:', remoteDir, 'SFTP enabled:', env.sftp.enabled);
   const remoteFile = joinPosix(remoteDir, filename);
 
   try {
     await client.connect({
       host: env.sftp.host,
+
       port: env.sftp.port,
       username: env.sftp.user,
       password: env.sftp.password
@@ -96,7 +100,8 @@ export async function uploadBuffer({ fileFormate, category, subCategory, titleFo
   const relativeDir = joinPosix(safeFileFormate, safeTitle);
 
   if (env.sftp.enabled) {
-    await uploadToSftp(relativeDir, safeFileName, buffer);
+    await uploadToSftp(relativeDir, safeFileName, buffer, safeFileFormate);
+
   } else {
     await uploadToLocal(relativeDir, safeFileName, buffer);
   }
