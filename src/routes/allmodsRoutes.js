@@ -7,6 +7,7 @@ import {
   getAllDownload,
   getAllMods,
   getDownloadById,
+  getLastMod,
   getModByCategory,
   getModById,
   getModChangeTimeline,
@@ -83,11 +84,14 @@ router.get("/secretebase/categories/count", async (req, res) => {
 
 router.post("/secretebase/addmod" , AddMod)
 
+router.get("/secretebase/getlastmod", getLastMod);
+
 router.put("/secretebase/:id", updateMod);
 
 router.get("/secretebase/history", getModHistorySummary);
 
 router.get("/secretebase/mod_change_history/:mod_id", getModChangeTimeline);
+
 
 
 

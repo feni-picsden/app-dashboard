@@ -380,7 +380,24 @@ updateMod: (id, data, platform, callback) => {
   },
   
   
+  getLastMod: (callback) => {
+  const query = `
+    SELECT android_version, ios_version
+    FROM snap_tech_modsforminecraft_modsData
+    ORDER BY post_id DESC
+    LIMIT 1
+  `;
 
+  db.query(query, (err, results) => {
+    if (err) return callback(err, null);
+
+    if (!results || results.length === 0) {
+      return callback(null, null);
+    }
+
+    callback(null, results[0]);
+  });
+},
 
 
   // get mod by category

@@ -240,6 +240,16 @@ export const AddMod = async (req, res) => {
   });
 };
 
+export const getLastMod = (req, res) => {
+  Mods.getLastMod((err, result) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    res.json(result);
+  });
+};
+
 export const getModHistorySummary = (req, res) => {
 
   const platform = req.query.platform || "iOS";
