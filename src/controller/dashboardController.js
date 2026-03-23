@@ -1,5 +1,6 @@
 
-import {  getCountriesByPlatformAndDate, getFilteredTableData } from "../models/dashboardModel.js";
+
+import {  getCountriesByPlatformAndDate, getFilteredTableData, getModStats } from "../models/dashboardModel.js";
 
 export const getDashboardData = (req, res) => {
   const { platform, country, dateRange, startDate, endDate } = req.query;
@@ -60,4 +61,29 @@ export const fetchCountriesByFilter = (req, res) => {
 
     res.json(result);
   });
+};
+
+
+export const fetchModPlatformStats = (req, res) => {
+  const {
+    platform,
+    dateRange,
+    startDate,
+    endDate,
+    country,
+
+  } = req.query;
+
+  getModStats(
+    platform,
+    dateRange,
+    startDate,
+    endDate,
+    country,
+    
+    (err, results) => {
+      if (err) return res.status(500).json(err);
+      res.json(results);
+    }
+  );
 };

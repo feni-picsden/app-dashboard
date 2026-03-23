@@ -250,7 +250,7 @@ LEFT JOIN (
        
         COUNT(*) AS impression_total
     FROM snap_tech_modsforminecraft_impressioncount_store
-    WHERE  ${statsFilter}
+    WHERE  ${statsFilter} AND is_free_premium = 0
     GROUP BY post_id
 ) i ON m.post_id = i.post_id
 
@@ -260,7 +260,7 @@ LEFT JOIN (
        
         COUNT(*) AS download_total
     FROM snap_tech_modsforminecraft_downloadcount_store
-    WHERE ${statsFilter}
+    WHERE ${statsFilter} AND is_free_premium = 0
     GROUP BY post_id
 ) d ON m.post_id = d.post_id
 
@@ -355,156 +355,195 @@ ${orderBy}
 LIMIT 1
 `;
 
-
-const topDownloadSql = `
+const dailyFreeModSql = `
 SELECT
   m.post_id,
   m.name AS mod_name,
-  totals.download_total,
-  MAX(d.country) AS country
-FROM snap_tech_modsforminecraft_modsData m
+  m.file_format,
+  m.title_for_path,
+  m.image_url,
+  m.description,
+  ${coinColumn} AS coin,
+  m.category,
+  m.sub_category,
+  m.version,
 
-LEFT JOIN (
-    SELECT post_id, COUNT(*) AS download_total
-    FROM snap_tech_modsforminecraft_downloadcount_store
-    WHERE ${statsFilter}
-    GROUP BY post_id
-) totals ON m.post_id = totals.post_id
-
-LEFT JOIN snap_tech_modsforminecraft_downloadcount_store d
-  ON m.post_id = d.post_id
-  AND ${statsFilter}
-
-WHERE totals.download_total IS NOT NULL
-
-GROUP BY m.post_id
-ORDER BY totals.download_total DESC
-LIMIT 5
-`;
-
-const topImpressionSql = `
-SELECT
-  m.post_id,
-  m.name AS mod_name,
-  totals.impression_total,
-  MAX(i.country) AS country
-FROM snap_tech_modsforminecraft_modsData m
-
-LEFT JOIN (
-    SELECT post_id, COUNT(*) AS impression_total
-    FROM snap_tech_modsforminecraft_impressioncount_store
-    WHERE ${statsFilter}
-    GROUP BY post_id
-) totals ON m.post_id = totals.post_id
-
-LEFT JOIN snap_tech_modsforminecraft_impressioncount_store i
-  ON m.post_id = i.post_id
-  AND ${statsFilter}
-
-WHERE totals.impression_total IS NOT NULL
-
-GROUP BY m.post_id
-ORDER BY totals.impression_total DESC
-LIMIT 5
-`;
-
-const topConversionSql = `
-SELECT
-  m.post_id,
-  m.name AS mod_name,
-  IFNULL(i.impression_total,0) AS impressions,
-  IFNULL(d.download_total,0) AS downloads,
-  MAX(ic.country) AS country,
-
-  CASE 
-    WHEN IFNULL(i.impression_total,0) = 0 
-    THEN 0
-    ELSE ROUND((d.download_total / i.impression_total) * 100,2)
-  END AS conversion_rate
+  IFNULL(i.impression_total,0) AS impression_total,
+  IFNULL(d.download_total,0) AS download_total
 
 FROM snap_tech_modsforminecraft_modsData m
 
 LEFT JOIN (
   SELECT post_id, COUNT(*) AS impression_total
   FROM snap_tech_modsforminecraft_impressioncount_store
-  WHERE ${statsFilter}
+  WHERE ${statsFilter} AND is_free_premium = 1
   GROUP BY post_id
-) i 
-ON m.post_id = i.post_id
+) i ON m.post_id = i.post_id
 
 LEFT JOIN (
   SELECT post_id, COUNT(*) AS download_total
   FROM snap_tech_modsforminecraft_downloadcount_store
-  WHERE ${statsFilter}
+  WHERE ${statsFilter} AND is_free_premium = 1
   GROUP BY post_id
-) d 
-ON m.post_id = d.post_id
+) d ON m.post_id = d.post_id
 
-LEFT JOIN snap_tech_modsforminecraft_impressioncount_store ic
-  ON m.post_id = ic.post_id
-  AND ${statsFilter}
+${where}
+AND (m.post_id = i.post_id OR m.post_id = d.post_id)
 
-WHERE i.impression_total > 0
+${orderBy}
 
-GROUP BY m.post_id
-ORDER BY conversion_rate DESC
-LIMIT 5
 `;
 
-const topDownloadCountrySql = `
-SELECT 
-  country,
-  COUNT(*) AS total,
-  ROUND((COUNT(*) * 100.0 / (
-      SELECT COUNT(*) 
-      FROM snap_tech_modsforminecraft_downloadcount_store
-      WHERE ${statsFilter}
-  )),0) AS percentage
-FROM snap_tech_modsforminecraft_downloadcount_store
-WHERE ${statsFilter}
-GROUP BY country
-ORDER BY total DESC
-LIMIT 5
-`;
 
-const topImpressionCountrySql = `
-SELECT 
-  country,
-  COUNT(*) AS total,
-  ROUND((COUNT(*) * 100.0 / (
-      SELECT COUNT(*) 
-      FROM snap_tech_modsforminecraft_impressioncount_store
-      WHERE ${statsFilter}
-  )),0) AS percentage
-FROM snap_tech_modsforminecraft_impressioncount_store
-WHERE ${statsFilter}
-GROUP BY country
-ORDER BY total DESC
-LIMIT 5
-`;
+// const topDownloadSql = `
+// SELECT
+//   m.post_id,
+//   m.name AS mod_name,
+//   totals.download_total,
+//   MAX(d.country) AS country
+// FROM snap_tech_modsforminecraft_modsData m
 
-const topConversionCountrySql = `
-SELECT 
-  i.country,
-  COUNT(*) AS total,
-  ROUND(
-    (SUM(CASE WHEN d.post_id IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*)) * 100,
-  2) AS conversion_rate
-FROM snap_tech_modsforminecraft_impressioncount_store i
+// LEFT JOIN (
+//     SELECT post_id, COUNT(*) AS download_total
+//     FROM snap_tech_modsforminecraft_downloadcount_store
+//     WHERE ${statsFilter}
+//     GROUP BY post_id
+// ) totals ON m.post_id = totals.post_id
 
-LEFT JOIN snap_tech_modsforminecraft_downloadcount_store d
-  ON i.post_id = d.post_id
-  AND i.country = d.country
+// LEFT JOIN snap_tech_modsforminecraft_downloadcount_store d
+//   ON m.post_id = d.post_id
+//   AND ${statsFilter}
 
-WHERE 1=1
-${normalizedPlatform ? "AND LOWER(i.platform) = ?" : ""}
-${country && country !== "all" ? "AND LOWER(i.country) = LOWER(?)" : ""}
-${start && end ? "AND DATE(i.create_date) BETWEEN ? AND ?" : ""}
+// WHERE totals.download_total IS NOT NULL
 
-GROUP BY i.country
-ORDER BY conversion_rate DESC
-LIMIT 5
-`;
+// GROUP BY m.post_id
+// ORDER BY totals.download_total DESC
+// LIMIT 5
+// `;
+
+// const topImpressionSql = `
+// SELECT
+//   m.post_id,
+//   m.name AS mod_name,
+//   totals.impression_total,
+//   MAX(i.country) AS country
+// FROM snap_tech_modsforminecraft_modsData m
+
+// LEFT JOIN (
+//     SELECT post_id, COUNT(*) AS impression_total
+//     FROM snap_tech_modsforminecraft_impressioncount_store
+//     WHERE ${statsFilter}
+//     GROUP BY post_id
+// ) totals ON m.post_id = totals.post_id
+
+// LEFT JOIN snap_tech_modsforminecraft_impressioncount_store i
+//   ON m.post_id = i.post_id
+//   AND ${statsFilter}
+
+// WHERE totals.impression_total IS NOT NULL
+
+// GROUP BY m.post_id
+// ORDER BY totals.impression_total DESC
+// LIMIT 5
+// `;
+
+// const topConversionSql = `
+// SELECT
+//   m.post_id,
+//   m.name AS mod_name,
+//   IFNULL(i.impression_total,0) AS impressions,
+//   IFNULL(d.download_total,0) AS downloads,
+//   MAX(ic.country) AS country,
+
+//   CASE 
+//     WHEN IFNULL(i.impression_total,0) = 0 
+//     THEN 0
+//     ELSE ROUND((d.download_total / i.impression_total) * 100,2)
+//   END AS conversion_rate
+
+// FROM snap_tech_modsforminecraft_modsData m
+
+// LEFT JOIN (
+//   SELECT post_id, COUNT(*) AS impression_total
+//   FROM snap_tech_modsforminecraft_impressioncount_store
+//   WHERE ${statsFilter}
+//   GROUP BY post_id
+// ) i 
+// ON m.post_id = i.post_id
+
+// LEFT JOIN (
+//   SELECT post_id, COUNT(*) AS download_total
+//   FROM snap_tech_modsforminecraft_downloadcount_store
+//   WHERE ${statsFilter}
+//   GROUP BY post_id
+// ) d 
+// ON m.post_id = d.post_id
+
+// LEFT JOIN snap_tech_modsforminecraft_impressioncount_store ic
+//   ON m.post_id = ic.post_id
+//   AND ${statsFilter}
+
+// WHERE i.impression_total > 0
+
+// GROUP BY m.post_id
+// ORDER BY conversion_rate DESC
+// LIMIT 5
+// `;
+
+// const topDownloadCountrySql = `
+// SELECT 
+//   country,
+//   COUNT(*) AS total,
+//   ROUND((COUNT(*) * 100.0 / (
+//       SELECT COUNT(*) 
+//       FROM snap_tech_modsforminecraft_downloadcount_store
+//       WHERE ${statsFilter}
+//   )),0) AS percentage
+// FROM snap_tech_modsforminecraft_downloadcount_store
+// WHERE ${statsFilter}
+// GROUP BY country
+// ORDER BY total DESC
+// LIMIT 5
+// `;
+
+// const topImpressionCountrySql = `
+// SELECT 
+//   country,
+//   COUNT(*) AS total,
+//   ROUND((COUNT(*) * 100.0 / (
+//       SELECT COUNT(*) 
+//       FROM snap_tech_modsforminecraft_impressioncount_store
+//       WHERE ${statsFilter}
+//   )),0) AS percentage
+// FROM snap_tech_modsforminecraft_impressioncount_store
+// WHERE ${statsFilter}
+// GROUP BY country
+// ORDER BY total DESC
+// LIMIT 5
+// `;
+
+// const topConversionCountrySql = `
+// SELECT 
+//   i.country,
+//   COUNT(*) AS total,
+//   ROUND(
+//     (SUM(CASE WHEN d.post_id IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*)) * 100,
+//   2) AS conversion_rate
+// FROM snap_tech_modsforminecraft_impressioncount_store i
+
+// LEFT JOIN snap_tech_modsforminecraft_downloadcount_store d
+//   ON i.post_id = d.post_id
+//   AND i.country = d.country
+
+// WHERE 1=1
+// ${normalizedPlatform ? "AND LOWER(i.platform) = ?" : ""}
+// ${country && country !== "all" ? "AND LOWER(i.country) = LOWER(?)" : ""}
+// ${start && end ? "AND DATE(i.create_date) BETWEEN ? AND ?" : ""}
+
+// GROUP BY i.country
+// ORDER BY conversion_rate DESC
+// LIMIT 5
+// `;
 
   // -----------------------
   // PARAM BUILDING
@@ -548,23 +587,28 @@ LIMIT 5
 
   const topMod = topResult.length ? topResult[0] : null;
 
- db.query(topDownloadSql, [...statsParams, ...statsParams], (err, topDownloads) => {
-  if (err) return callback(err);
-
-  db.query(topImpressionSql, [...statsParams, ...statsParams], (err2, topImpressions) => {
+    db.query(dailyFreeModSql, topParams, (err2, freeResult) => {
     if (err2) return callback(err2);
 
-   db.query(topConversionSql, [...statsParams, ...statsParams, ...statsParams], (err3, topConversions) => {
-  if (err3) return callback(err3);
+    const dailyFreeMod = freeResult || [];
 
-  db.query(topDownloadCountrySql, [...statsParams, ...statsParams], (err4, topDownloadCountries) => {
-    if (err4) return callback(err4);
+//  db.query(topDownloadSql, [...statsParams, ...statsParams], (err, topDownloads) => {
+//   if (err) return callback(err);
 
-    db.query(topImpressionCountrySql, [...statsParams, ...statsParams], (err5, topImpressionCountries) => {
-      if (err5) return callback(err5);
+//   db.query(topImpressionSql, [...statsParams, ...statsParams], (err2, topImpressions) => {
+//     if (err2) return callback(err2);
 
-      db.query(topConversionCountrySql, [...statsParams], (err6, topConversionCountries) => {
-         if (err6) return callback(err6);
+//    db.query(topConversionSql, [...statsParams, ...statsParams, ...statsParams], (err3, topConversions) => {
+//   if (err3) return callback(err3);
+
+//   db.query(topDownloadCountrySql, [...statsParams, ...statsParams], (err4, topDownloadCountries) => {
+//     if (err4) return callback(err4);
+
+//     db.query(topImpressionCountrySql, [...statsParams, ...statsParams], (err5, topImpressionCountries) => {
+//       if (err5) return callback(err5);
+
+//       db.query(topConversionCountrySql, [...statsParams], (err6, topConversionCountries) => {
+//          if (err6) return callback(err6);
 
       db.query(sql, mainQueryParams, (err6, rows) => {
         if (err6) return callback(err6);
@@ -574,12 +618,13 @@ LIMIT 5
           totalImpressions,
           totalDownloads,
           topMod,
-          topDownloads,
-          topImpressions,
-          topConversions,
-          topDownloadCountries,
-          topImpressionCountries,
-          topConversionCountries,
+          dailyFreeMod,   
+          // topDownloads,
+          // topImpressions,
+          // topConversions,
+          // topDownloadCountries,
+          // topImpressionCountries,
+          // topConversionCountries,
           page,
           limit,
           data: rows
@@ -588,12 +633,13 @@ LIMIT 5
       });
     });
   });
-});
+//   });
+// });
 
-  });
-});
-});
-});
+//   });
+// });
+// });
+// });
 };
 
 export const getModCountryStats = (

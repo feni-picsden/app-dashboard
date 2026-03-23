@@ -1,10 +1,13 @@
 import express from "express";
-import {  fetchCountriesByFilter, getDashboardData } from "../controller/dashboardController.js";
+import {  fetchCountriesByFilter, fetchModPlatformStats, getDashboardData } from "../controller/dashboardController.js";
+
 
 const router = express.Router();
 
 router.get("/secretebase/dashboard/filter", getDashboardData);
 
 router.get("/secretebase/countries-count", fetchCountriesByFilter);
+
+router.get("/secretebase/modplatformstats", fetchModPlatformStats);
 
 export default router;
