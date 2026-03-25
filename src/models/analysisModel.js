@@ -216,11 +216,26 @@ limit = Number(limit) || 10;
   // ORDER
   // -----------------------
 
-  let orderBy = "ORDER BY impression_total DESC";
+  // let orderBy = "ORDER BY impression_total DESC";
+  let orderBy = ""; // ✅ default = NO SORT (DB order)
+
+if (normalizedType === "impression") {
+  orderBy = "ORDER BY impression_total DESC";
+}
 
   if (normalizedType === "download") {
     orderBy = "ORDER BY download_total DESC";
   }
+
+  if (normalizedType === "conversion") {
+  orderBy = `
+    ORDER BY 
+    CASE 
+      WHEN IFNULL(i.impression_total,0) = 0 THEN 0
+      ELSE (IFNULL(d.download_total,0) / i.impression_total)
+    END DESC
+  `;
+}
 
   // -----------------------
   // MAIN QUERY
@@ -555,7 +570,7 @@ ${orderBy}
     ...mainParams
   ];
 
-  const mainQueryParams = [
+  const mainQueryParams = [ 
     ...statsParams,
     ...statsParams,
     ...mainParams,

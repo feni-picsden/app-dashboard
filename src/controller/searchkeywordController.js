@@ -134,7 +134,7 @@ export const fetchCountriesByKeyword = async (req, res) => {
 };
 
 export const searchMods = (req, res) => {
-  const { platform, keyword } = req.body;
+  const { platform, keyword, version = "" } = req.body;
 
   if (!platform)
     return res.status(400).json({ error: "Platform is required" });
@@ -166,7 +166,7 @@ export const searchMods = (req, res) => {
     }
 
     //Search mods using individual words
-    getModsByKeywords(words, (err, mods) => {
+    getModsByKeywords(words,version, (err, mods) => {
 
       if (err)
         return res.status(500).json({ error: "Server Error" });

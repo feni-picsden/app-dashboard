@@ -25,7 +25,7 @@ export const Mods = {
     let whereAdded = false;
 
     
-  const activeColumn = platform === "Android" ? "android_isActive" : "isActive";
+  const activeColumn = platform === "android" ? "android_isActive" : "isActive";
     if (isActive === "1" || isActive === "0") {
     query += whereAdded ? ` AND ${activeColumn} = ?` : ` WHERE ${activeColumn} = ?`;
     countQuery += whereAdded ? ` AND ${activeColumn} = ?` : ` WHERE ${activeColumn} = ?`;
@@ -92,7 +92,7 @@ export const Mods = {
       query += " ORDER BY post_id DESC";
     }
 
-        const downloadColumn = platform === "Android" ? "android_download" : "download";
+        const downloadColumn = platform === "android" ? "android_download" : "download";
           if (sortBy === "download") {
             query += ` ORDER BY ${downloadColumn} DESC`;
           }
@@ -176,7 +176,17 @@ updateMod: (id, data, platform, callback) => {
       const historyRows = [];
 
     Object.keys(newData).forEach(field => {
-    const oldValue = oldData[field] ?? "";
+    // const oldValue = oldData[field] ?? "";
+      let oldValue;
+
+  if (platform === "Android") {
+    if (field === "download") oldValue = oldData.android_download;
+    else if (field === "coin") oldValue = oldData.android_coins;
+    else if (field === "isActive") oldValue = oldData.android_isActive;
+    else oldValue = oldData[field];
+  } else {
+    oldValue = oldData[field];
+  }
     const newValue = newData[field] ?? "";
 
   // convert both to string for accurate compare
