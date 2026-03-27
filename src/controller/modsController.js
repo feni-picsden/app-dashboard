@@ -292,8 +292,8 @@ export const getModChangeTimeline = (req, res) => {
 
   const mod_id = req.params.mod_id;
   const platform = req.query.platform || "iOS";
-  const start = req.query.start || null;
-  const end = req.query.end || null;
+  const start = req.query.fromDate || null;
+  const end = req.query.toDate || null;
 
   Mods.getModChangeTimeline(mod_id, platform, start, end, (err, result) => {
     if (err) {
