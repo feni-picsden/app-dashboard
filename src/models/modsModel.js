@@ -403,7 +403,7 @@ updateMod: (id, data, platform, callback) => {
 
     if (!results || results.length === 0) {
       return callback(null, null);
-    }
+    } 
 
     callback(null, results[0]);
   });
@@ -558,153 +558,435 @@ updateMod: (id, data, platform, callback) => {
 // },
 
 
-getModChangeTimeline: (mod_id, platform, start, end, callback) => {
-  let dateFilter = "";
-  let params = [mod_id, platform];
+// getModChangeTimeline: (mod_id, platform, start, end, callback) => {
+//   console.log(mod_id,platform,start,end,callback)
+//   let dateFilter = "";
+//   let params = [mod_id, platform];
 
+//   // if (start && end) {
+//   //   dateFilter = "AND h.changed_at BETWEEN ? AND ?";
+//   //   params.push(start, end);
+//   // }
+
+//     // Handle the 'start' and 'end' dates
+//   if (start && end) {
+//     // If both start and end are provided, filter between those dates
+//     dateFilter = "AND h.changed_at BETWEEN '${start}' AND '${end}'";
+//     params.push(start, end);
+//   } else if (start) {
+//     // If only start is provided, filter from start date onward
+//     dateFilter = "AND h.changed_at >= '${start}'";
+//     params.push(start);
+//   } else if (end) {
+//     // If only end is provided, filter up to end date
+//     dateFilter = "AND h.changed_at <= '${end}'";
+//     params.push(end);
+//   }
+
+
+//   const query = `
+//   SELECT 
+//     h.id,
+//     h.mod_id,
+//     m.name AS mod_name,
+//     h.field,
+//     h.value_before,
+//     h.value_after,
+//     DATE_FORMAT(h.changed_at, '%Y-%m-%d %H:%i:%s') AS changed_at,
+//     h.platform,
+
+//     -- TOTAL BEFORE
+//     (SELECT COUNT(*) 
+//      FROM snap_tech_modsforminecraft_impressioncount_store c
+//      WHERE c.post_id = h.mod_id 
+//      AND c.create_date <= h.changed_at ${dateFilter}) AS impression_before,
+
+//     (SELECT COUNT(*) 
+//      FROM snap_tech_modsforminecraft_downloadcount_store c
+//      WHERE c.post_id = h.mod_id 
+//      AND c.create_date <= h.changed_at  ${dateFilter}) AS download_before,
+
+//     -- TOTAL AFTER
+//     (SELECT COUNT(*) 
+//      FROM snap_tech_modsforminecraft_impressioncount_store c
+//      WHERE c.post_id = h.mod_id 
+//      AND c.create_date >= h.changed_at  ${dateFilter}) AS impression_after,
+
+//     (SELECT COUNT(*) 
+//      FROM snap_tech_modsforminecraft_downloadcount_store c
+//      WHERE c.post_id = h.mod_id 
+//      AND c.create_date >= h.changed_at  ${dateFilter}) AS download_after,
+
+//     -- TOP COUNTRY BEFORE
+//     (
+//       SELECT country
+//       FROM snap_tech_modsforminecraft_impressioncount_store c
+//       WHERE c.post_id = h.mod_id
+//       AND c.create_date <= h.changed_at  ${dateFilter}
+//       GROUP BY country
+//       ORDER BY COUNT(*) DESC
+//       LIMIT 1
+//     ) AS top_country_before,
+
+//     -- IMPRESSION OF TOP COUNTRY BEFORE
+//     (
+//       SELECT COUNT(*)
+//       FROM snap_tech_modsforminecraft_impressioncount_store c
+//       WHERE c.post_id = h.mod_id
+//       AND c.country = (
+//           SELECT country
+//           FROM snap_tech_modsforminecraft_impressioncount_store c2
+//           WHERE c2.post_id = h.mod_id
+//           AND c2.create_date <= h.changed_at  ${dateFilter}
+//           GROUP BY country
+//           ORDER BY COUNT(*) DESC
+//           LIMIT 1
+//       )
+//       AND c.create_date <= h.changed_at  ${dateFilter}
+//     ) AS top_country_before_impression,
+
+//     -- DOWNLOAD OF TOP COUNTRY BEFORE
+//     (
+//       SELECT COUNT(*)
+//       FROM snap_tech_modsforminecraft_downloadcount_store c
+//       WHERE c.post_id = h.mod_id
+//       AND c.country = (
+//           SELECT country
+//           FROM snap_tech_modsforminecraft_impressioncount_store c2
+//           WHERE c2.post_id = h.mod_id
+//           AND c2.create_date <= h.changed_at  ${dateFilter}
+//           GROUP BY country
+//           ORDER BY COUNT(*) DESC
+//           LIMIT 1
+//       )
+//       AND c.create_date <= h.changed_at  ${dateFilter}
+//     ) AS top_country_before_download,
+
+//     -- TOP COUNTRY AFTER
+//     (
+//       SELECT country
+//       FROM snap_tech_modsforminecraft_impressioncount_store c
+//       WHERE c.post_id = h.mod_id
+//       AND c.create_date >= h.changed_at  ${dateFilter}
+//       GROUP BY country
+//       ORDER BY COUNT(*) DESC
+//       LIMIT 1
+//     ) AS top_country_after,
+
+//     -- IMPRESSION OF TOP COUNTRY AFTER
+//     (
+//       SELECT COUNT(*)
+//       FROM snap_tech_modsforminecraft_impressioncount_store c
+//       WHERE c.post_id = h.mod_id
+//       AND c.country = (
+//           SELECT country
+//           FROM snap_tech_modsforminecraft_impressioncount_store c2
+//           WHERE c2.post_id = h.mod_id
+//           AND c2.create_date >= h.changed_at  ${dateFilter}
+//           GROUP BY country
+//           ORDER BY COUNT(*) DESC
+//           LIMIT 1
+//       )
+//       AND c.create_date >= h.changed_at  ${dateFilter}
+//     ) AS top_country_after_impression,
+
+//     -- DOWNLOAD OF TOP COUNTRY AFTER
+//     (
+//       SELECT COUNT(*)
+//       FROM snap_tech_modsforminecraft_downloadcount_store c
+//       WHERE c.post_id = h.mod_id
+//       AND c.country = (
+//           SELECT country
+//           FROM snap_tech_modsforminecraft_impressioncount_store c2
+//           WHERE c2.post_id = h.mod_id
+//           AND c2.create_date >= h.changed_at  ${dateFilter}
+//           GROUP BY country
+//           ORDER BY COUNT(*) DESC
+//           LIMIT 1
+//       )
+//       AND c.create_date >= h.changed_at  ${dateFilter}
+//     ) AS top_country_after_download
+
+//   FROM snap_tech_modsforminecraft_history h
+//   JOIN snap_tech_modsforminecraft_modsData m 
+//     ON m.post_id = h.mod_id
+
+//   WHERE h.mod_id = ?
+//   AND h.platform = ?
+//   ${dateFilter}
+
+//   ORDER BY h.changed_at DESC
+//   `;
+
+
+//   db.query(query, params, (err, results) => {
+//     console.log(params)
+//     if (err) {
+//       console.log(err)
+//       return callback(err, null)};
+//       console.log(results)
+//     callback(null, results);
+//   });
+// },
+
+getModChangeTimeline: (mod_id, platform, start, end, callback) => {
+  console.log(mod_id, platform, start, end, callback);
+
+  // Validate dates
+  if (start && isNaN(Date.parse(start))) start = null;
+  if (end && isNaN(Date.parse(end))) end = null;
+
+  // Build date filter for main history table
+  let dateFilter = "";
   if (start && end) {
-    dateFilter = "AND h.changed_at BETWEEN ? AND ?";
-    params.push(start, end);
+    dateFilter = `AND DATE(h.changed_at) BETWEEN DATE('${start}') AND DATE('${end}')`;
+  } else if (start) {
+    dateFilter = `AND DATE(h.changed_at) >= DATE('${start}')`;
+  } else if (end) {
+    dateFilter = `AND DATE(h.changed_at) <= DATE('${end}')`;
   }
 
   const query = `
-  SELECT 
-    h.id,
-    h.mod_id,
-    m.name AS mod_name,
-    h.field,
-    h.value_before,
-    h.value_after,
-    DATE_FORMAT(h.changed_at, '%Y-%m-%d %H:%i:%s') AS changed_at,
-    h.platform,
+    SELECT 
+      h.id,
+      h.mod_id,
+      m.name AS mod_name,
+      h.field,
+      h.value_before,
+      h.value_after,
+      DATE_FORMAT(h.changed_at, '%Y-%m-%d %H:%i:%s') AS changed_at,
+      h.platform,
 
-    -- TOTAL BEFORE
-    (SELECT COUNT(*) 
-     FROM snap_tech_modsforminecraft_impressioncount_store c
-     WHERE c.post_id = h.mod_id 
-     AND c.create_date <= h.changed_at) AS impression_before,
+      -- TOTAL BEFORE
+      (SELECT COUNT(*) 
+       FROM snap_tech_modsforminecraft_impressioncount_store c
+       WHERE c.post_id = h.mod_id 
+       AND c.create_date <= h.changed_at
+       ${start ? `AND c.create_date >= '${start}'` : ''}
+       ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS impression_before,
 
-    (SELECT COUNT(*) 
-     FROM snap_tech_modsforminecraft_downloadcount_store c
-     WHERE c.post_id = h.mod_id 
-     AND c.create_date <= h.changed_at) AS download_before,
+      (SELECT COUNT(*) 
+       FROM snap_tech_modsforminecraft_downloadcount_store c
+       WHERE c.post_id = h.mod_id 
+       AND c.create_date <= h.changed_at
+       ${start ? `AND c.create_date >= '${start}'` : ''}
+       ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS download_before,
 
-    -- TOTAL AFTER
-    (SELECT COUNT(*) 
-     FROM snap_tech_modsforminecraft_impressioncount_store c
-     WHERE c.post_id = h.mod_id 
-     AND c.create_date >= h.changed_at) AS impression_after,
+      -- TOTAL AFTER
+      (SELECT COUNT(*) 
+       FROM snap_tech_modsforminecraft_impressioncount_store c
+       WHERE c.post_id = h.mod_id 
+       AND c.create_date >= h.changed_at
+       ${start ? `AND c.create_date >= '${start}'` : ''}
+       ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS impression_after,
 
-    (SELECT COUNT(*) 
-     FROM snap_tech_modsforminecraft_downloadcount_store c
-     WHERE c.post_id = h.mod_id 
-     AND c.create_date >= h.changed_at) AS download_after,
+      (SELECT COUNT(*) 
+       FROM snap_tech_modsforminecraft_downloadcount_store c
+       WHERE c.post_id = h.mod_id 
+       AND c.create_date >= h.changed_at
+       ${start ? `AND c.create_date >= '${start}'` : ''}
+       ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS download_after,
 
-    -- TOP COUNTRY BEFORE
-    (
-      SELECT country
-      FROM snap_tech_modsforminecraft_impressioncount_store c
-      WHERE c.post_id = h.mod_id
-      AND c.create_date <= h.changed_at
-      GROUP BY country
-      ORDER BY COUNT(*) DESC
-      LIMIT 1
-    ) AS top_country_before,
+      -- TOP COUNTRY BEFORE
+      (
+        SELECT country
+        FROM snap_tech_modsforminecraft_impressioncount_store c
+        WHERE c.post_id = h.mod_id 
+        AND c.create_date <= h.changed_at
+        ${start ? `AND c.create_date >= '${start}'` : ''}
+        ${end ? `AND c.create_date <= '${end}'` : ''}
+        GROUP BY country
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      ) AS top_country_before,
 
-    -- IMPRESSION OF TOP COUNTRY BEFORE
-    (
-      SELECT COUNT(*)
-      FROM snap_tech_modsforminecraft_impressioncount_store c
-      WHERE c.post_id = h.mod_id
-      AND c.country = (
+      -- IMPRESSION OF TOP COUNTRY BEFORE
+      (
+        SELECT COUNT(*)
+        FROM snap_tech_modsforminecraft_impressioncount_store c
+        WHERE c.post_id = h.mod_id
+        AND c.country = (
           SELECT country
           FROM snap_tech_modsforminecraft_impressioncount_store c2
           WHERE c2.post_id = h.mod_id
           AND c2.create_date <= h.changed_at
+          ${start ? `AND c2.create_date >= '${start}'` : ''}
+          ${end ? `AND c2.create_date <= '${end}'` : ''}
           GROUP BY country
           ORDER BY COUNT(*) DESC
           LIMIT 1
-      )
-      AND c.create_date <= h.changed_at
-    ) AS top_country_before_impression,
+        )
+        AND c.create_date <= h.changed_at
+        ${start ? `AND c.create_date >= '${start}'` : ''}
+        ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS top_country_before_impression,
 
-    -- DOWNLOAD OF TOP COUNTRY BEFORE
-    (
-      SELECT COUNT(*)
-      FROM snap_tech_modsforminecraft_downloadcount_store c
-      WHERE c.post_id = h.mod_id
-      AND c.country = (
+      -- DOWNLOAD OF TOP COUNTRY BEFORE
+      (
+        SELECT COUNT(*)
+        FROM snap_tech_modsforminecraft_downloadcount_store c
+        WHERE c.post_id = h.mod_id
+        AND c.country = (
           SELECT country
           FROM snap_tech_modsforminecraft_impressioncount_store c2
           WHERE c2.post_id = h.mod_id
           AND c2.create_date <= h.changed_at
+          ${start ? `AND c2.create_date >= '${start}'` : ''}
+          ${end ? `AND c2.create_date <= '${end}'` : ''}
           GROUP BY country
           ORDER BY COUNT(*) DESC
           LIMIT 1
-      )
-      AND c.create_date <= h.changed_at
-    ) AS top_country_before_download,
+        )
+        AND c.create_date <= h.changed_at
+        ${start ? `AND c.create_date >= '${start}'` : ''}
+        ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS top_country_before_download,
 
-    -- TOP COUNTRY AFTER
-    (
-      SELECT country
-      FROM snap_tech_modsforminecraft_impressioncount_store c
-      WHERE c.post_id = h.mod_id
-      AND c.create_date >= h.changed_at
-      GROUP BY country
-      ORDER BY COUNT(*) DESC
-      LIMIT 1
-    ) AS top_country_after,
+      -- TOP COUNTRY AFTER
+      (
+        SELECT country
+        FROM snap_tech_modsforminecraft_impressioncount_store c
+        WHERE c.post_id = h.mod_id
+        AND c.create_date >= h.changed_at
+        ${start ? `AND c.create_date >= '${start}'` : ''}
+        ${end ? `AND c.create_date <= '${end}'` : ''}
+        GROUP BY country
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      ) AS top_country_after,
 
-    -- IMPRESSION OF TOP COUNTRY AFTER
-    (
-      SELECT COUNT(*)
-      FROM snap_tech_modsforminecraft_impressioncount_store c
-      WHERE c.post_id = h.mod_id
-      AND c.country = (
+      -- IMPRESSION OF TOP COUNTRY AFTER
+      (
+        SELECT COUNT(*)
+        FROM snap_tech_modsforminecraft_impressioncount_store c
+        WHERE c.post_id = h.mod_id
+        AND c.country = (
           SELECT country
           FROM snap_tech_modsforminecraft_impressioncount_store c2
           WHERE c2.post_id = h.mod_id
           AND c2.create_date >= h.changed_at
+          ${start ? `AND c2.create_date >= '${start}'` : ''}
+          ${end ? `AND c2.create_date <= '${end}'` : ''}
           GROUP BY country
           ORDER BY COUNT(*) DESC
           LIMIT 1
-      )
-      AND c.create_date >= h.changed_at
-    ) AS top_country_after_impression,
+        )
+        AND c.create_date >= h.changed_at
+        ${start ? `AND c.create_date >= '${start}'` : ''}
+        ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS top_country_after_impression,
 
-    -- DOWNLOAD OF TOP COUNTRY AFTER
-    (
-      SELECT COUNT(*)
-      FROM snap_tech_modsforminecraft_downloadcount_store c
-      WHERE c.post_id = h.mod_id
-      AND c.country = (
+      -- DOWNLOAD OF TOP COUNTRY AFTER
+      (
+        SELECT COUNT(*)
+        FROM snap_tech_modsforminecraft_downloadcount_store c
+        WHERE c.post_id = h.mod_id
+        AND c.country = (
           SELECT country
           FROM snap_tech_modsforminecraft_impressioncount_store c2
           WHERE c2.post_id = h.mod_id
           AND c2.create_date >= h.changed_at
+          ${start ? `AND c2.create_date >= '${start}'` : ''}
+          ${end ? `AND c2.create_date <= '${end}'` : ''}
           GROUP BY country
           ORDER BY COUNT(*) DESC
           LIMIT 1
-      )
-      AND c.create_date >= h.changed_at
-    ) AS top_country_after_download
+        )
+        AND c.create_date >= h.changed_at
+        ${start ? `AND c.create_date >= '${start}'` : ''}
+        ${end ? `AND c.create_date <= '${end}'` : ''}
+      ) AS top_country_after_download
 
-  FROM snap_tech_modsforminecraft_history h
-  JOIN snap_tech_modsforminecraft_modsData m 
-    ON m.post_id = h.mod_id
-
-  WHERE h.mod_id = ?
-  AND h.platform = ?
-  ${dateFilter}
-
-  ORDER BY h.changed_at DESC
+    FROM snap_tech_modsforminecraft_history h
+    JOIN snap_tech_modsforminecraft_modsData m 
+      ON m.post_id = h.mod_id
+    WHERE h.mod_id = ?
+      AND h.platform = ?
+      ${dateFilter}
+    ORDER BY h.changed_at DESC
   `;
 
+  // Only mod_id and platform in params
+  const params = [mod_id, platform];
+
   db.query(query, params, (err, results) => {
-    if (err) return callback(err, null);
+    if (err) {
+      console.log(err);
+      return callback(err, null);
+    }
     callback(null, results);
   });
 },
+
+// getModChangeTimeline: (mod_id, platform, start, end, callback) => {
+//   let dateFilter = "";
+//   let params = [mod_id, platform];
+
+//   if (start && end) {
+//     dateFilter = "AND DATE(h.changed_at) BETWEEN ? AND ?";
+//     params.push(start, end);
+//   }
+
+//   const query = `
+//   SELECT 
+//     h.id,
+//     h.mod_id,
+//     m.name AS mod_name,
+//     h.field,
+//     h.value_before,
+//     h.value_after,
+//     DATE_FORMAT(h.changed_at, '%Y-%m-%d') AS changed_at,
+//     h.platform,
+
+//     /* ✅ DATE-WISE CUMULATIVE BEFORE */
+//     (
+//       SELECT COUNT(*) 
+//       FROM snap_tech_modsforminecraft_impressioncount_store c
+//       WHERE c.post_id = h.mod_id 
+//       AND DATE(c.create_date) <= DATE(h.changed_at)
+//     ) AS impression_before,
+
+//     (
+//       SELECT COUNT(*) 
+//       FROM snap_tech_modsforminecraft_downloadcount_store c
+//       WHERE c.post_id = h.mod_id 
+//       AND DATE(c.create_date) <= DATE(h.changed_at)
+//     ) AS download_before,
+
+//     /* ✅ OPTIONAL AFTER (can keep or remove) */
+//     (
+//       SELECT COUNT(*) 
+//       FROM snap_tech_modsforminecraft_impressioncount_store c
+//       WHERE c.post_id = h.mod_id 
+//       AND DATE(c.create_date) > DATE(h.changed_at)
+//     ) AS impression_after,
+
+//     (
+//       SELECT COUNT(*) 
+//       FROM snap_tech_modsforminecraft_downloadcount_store c
+//       WHERE c.post_id = h.mod_id 
+//       AND DATE(c.create_date) > DATE(h.changed_at)
+//     ) AS download_after
+
+//   FROM snap_tech_modsforminecraft_history h
+//   JOIN snap_tech_modsforminecraft_modsData m 
+//     ON m.post_id = h.mod_id
+
+//   WHERE h.mod_id = ?
+//   AND h.platform = ?
+//   ${dateFilter}
+
+//   ORDER BY DATE(h.changed_at) ASC
+//   `;
+
+//   db.query(query, params, (err, results) => {
+//     if (err) return callback(err, null);
+//     callback(null, results);
+//   });
+// }
 
 };
